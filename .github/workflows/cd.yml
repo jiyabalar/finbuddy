@@ -1,0 +1,77 @@
+name: CD
+
+# Runs only after the CI workflow succeeded on the main branch.
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Build images & deploy
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Lower-case image name
+        run: echo "IMAGE=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_ENV"
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          tags: |
+            ${{ env.IMAGE }}/backend:latest
+            ${{ env.IMAGE }}/backend:${{ github.event.workflow_run.head_sha }}
+
+      - name: Push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          push: true
+          build-args: VITE_API_URL=${{ vars.BACKEND_URL }}
+          tags: |
+            ${{ env.IMAGE }}/frontend:latest
+            ${{ env.IMAGE }}/frontend:${{ github.event.workflow_run.head_sha }}
+
+      # ---- Deploy. Works with any host that offers a "deploy hook" URL (Render, Railway, ...). ----
+      # Add these in GitHub -> Settings -> Secrets and variables -> Actions:
+      #   secrets.BACKEND_DEPLOY_HOOK_URL   secrets.FRONTEND_DEPLOY_HOOK_URL
+      #   vars.BACKEND_URL (e.g. https://finbuddy-api.onrender.com)
+      - name: Trigger backend deploy
+        env:
+          HOOK: ${{ secrets.BACKEND_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "BACKEND_DEPLOY_HOOK_URL not set - skipping (configure it to enable deployment)"; else curl -fsS -X POST "$HOOK"; fi
+
+      - name: Trigger frontend deploy
+        env:
+          HOOK: ${{ secrets.FRONTEND_DEPLOY_HOOK_URL }}
+        run: |
+          if [ -z "$HOOK" ]; then echo "FRONTEND_DEPLOY_HOOK_URL not set - skipping"; else curl -fsS -X POST "$HOOK"; fi
+
+      - name: Wait for production health check
+        env:
+          URL: ${{ vars.BACKEND_URL }}
+        run: |
+          if [ -z "$URL" ]; then echo "vars.BACKEND_URL not set - skipping health check"; exit 0; fi
+          for i in $(seq 1 20); do
+            if curl -fsS "$URL/api/health" | grep -q healthy; then echo "Production is healthy"; exit 0; fi
+            echo "Waiting for deployment ($i/20)..."; sleep 15
+          done
+          echo "Health check failed"; exit 1

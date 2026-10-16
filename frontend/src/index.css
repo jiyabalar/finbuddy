@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --ink: 27 24 72;
+  --paper: 251 250 244;
+  --card: 255 255 255;
+  --lilac: 228 213 248;
+}
+:root.dark {
+  --ink: 238 236 255;
+  --paper: 17 15 42;
+  --card: 33 30 72;
+  --lilac: 58 51 108;
+}
+
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-paper font-sans text-ink antialiased; }
+  h1, h2, h3, h4 { @apply font-display tracking-tight; }
+  :focus-visible { @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-paper; }
+}
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-bold transition active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-50; }
+  .field { @apply w-full rounded-2xl border-2 border-ink/10 bg-card px-4 py-2.5 text-sm text-ink placeholder:text-ink/40 transition focus:border-brand focus:outline-none; }
+  .scallop-top { mask: radial-gradient(circle 18px at 18px 0, #0000 98%, #000) top/36px 100% repeat-x; }
+  .page-in { animation: pop_in .35s ease-out both; }
+}
+
+.recharts-tooltip-wrapper { outline: none; }
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-thumb { background: rgb(var(--ink) / .2); border-radius: 99px; }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation: none !important; transition: none !important; } }

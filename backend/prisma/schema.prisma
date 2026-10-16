@@ -1,0 +1,106 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int      @id @default(autoincrement())
+  name          String
+  email         String   @unique
+  passwordHash  String   @map("password_hash")
+  college       String?
+  monthlyIncome Float    @default(0) @map("monthly_income")
+  currency      String   @default("INR")
+  avatar        String?
+  role          String   @default("user")
+  preferences   Json?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  transactions  Transaction[]
+  budgets       Budget[]
+  goals         SavingsGoal[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Transaction {
+  id              Int      @id @default(autoincrement())
+  userId          Int      @map("user_id")
+  type            String // "income" | "expense"
+  amount          Float
+  category        String // expense category OR income source
+  description     String?
+  paymentMethod   String?  @map("payment_method")
+  transactionDate DateTime @map("transaction_date")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, transactionDate])
+  @@index([userId, type])
+  @@map("transactions")
+}
+
+model Budget {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @map("user_id")
+  month       Int
+  year        Int
+  totalBudget Float    @map("total_budget")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories BudgetCategory[]
+
+  @@unique([userId, month, year])
+  @@map("budgets")
+}
+
+model BudgetCategory {
+  id              Int    @id @default(autoincrement())
+  budgetId        Int    @map("budget_id")
+  category        String
+  allocatedAmount Float  @map("allocated_amount")
+
+  budget Budget @relation(fields: [budgetId], references: [id], onDelete: Cascade)
+
+  @@index([budgetId])
+  @@map("budget_categories")
+}
+
+model SavingsGoal {
+  id            Int       @id @default(autoincrement())
+  userId        Int       @map("user_id")
+  name          String
+  targetAmount  Float     @map("target_amount")
+  currentAmount Float     @default(0) @map("current_amount")
+  targetDate    DateTime? @map("target_date")
+  category      String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("savings_goals")
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  title     String
+  message   String
+  type      String // budget_warning | budget_exceeded | goal_progress | goal_completed | insight | reminder
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
