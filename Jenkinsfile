@@ -1,84 +1,80 @@
 pipeline {
-agent any
+    agent any
 
-```
-tools {
-    nodejs 'NodeJS26'
-}
-
-options {
-    timestamps()
-}
-
-environment {
-    DATABASE_URL = 'postgresql://ci:ci@localhost:5432/ci?schema=public'
-    JWT_SECRET = 'ci-test-secret'
-}
-
-stages {
-    stage('Checkout') {
-        steps {
-            echo 'Starting FinBuddy CI pipeline'
-            echo 'Checking out the source code through Jenkins SCM configuration'
-        }
+    tools {
+        nodejs 'NodeJS26'
     }
 
-    stage('Backend CI') {
-        steps {
-            dir('backend') {
-                echo 'Installing backend dependencies'
-                sh 'npm install --no-audit --no-fund'
+    options {
+        timestamps()
+    }
 
-                echo 'Generating Prisma client'
-                sh 'npx prisma generate'
+    environment {
+        DATABASE_URL = 'postgresql://ci:ci@localhost:5432/ci?schema=public'
+        JWT_SECRET = 'ci-test-secret'
+    }
 
-                echo 'Validating Prisma schema'
-                sh 'npx prisma validate'
+    stages {
+        stage('Checkout') {
+            steps {
+                echo 'FinBuddy CI pipeline started!'
+                echo 'Source code has been checked out from GitHub.'
+            }
+        }
 
-                echo 'Running backend lint'
-                sh 'npm run lint'
+        stage('Backend CI') {
+            steps {
+                dir('backend') {
+                    stage('Install Backend Dependencies') {
+                        sh 'npm install --no-audit --no-fund'
+                    }
 
-                echo 'Running backend tests'
-                sh 'npm test'
+                    stage('Generate Prisma Client') {
+                        sh 'npx prisma generate'
+                    }
 
-                echo 'Building backend'
-                sh 'npm run build'
+                    stage('Validate Prisma Schema') {
+                        sh 'npx prisma validate'
+                    }
+
+                    stage('Backend Lint') {
+                        sh 'npm run lint'
+                    }
+
+                    stage('Backend Tests') {
+                        sh 'npm test'
+                    }
+
+                    stage('Backend Build') {
+                        sh 'npm run build'
+                    }
+                }
+            }
+        }
+
+        stage('Frontend CI') {
+            steps {
+                dir('frontend') {
+                    sh 'npm install --no-audit --no-fund'
+                    sh 'npm run lint'
+                    sh 'npm test'
+                    sh 'npm run build'
+                }
             }
         }
     }
 
-    stage('Frontend CI') {
-        steps {
-            dir('frontend') {
-                echo 'Installing frontend dependencies'
-                sh 'npm install --no-audit --no-fund'
+    post {
+        success {
+            echo 'SUCCESS: FinBuddy CI pipeline completed!'
+        }
 
-                echo 'Running frontend lint'
-                sh 'npm run lint'
+        failure {
+            echo 'FAILED: Check the Jenkins Console Output for details.'
+        }
 
-                echo 'Running frontend tests'
-                sh 'npm test'
-
-                echo 'Building frontend'
-                sh 'npm run build'
-            }
+        always {
+            echo 'FinBuddy CI pipeline finished.'
         }
     }
-}
-
-post {
-    success {
-        echo 'SUCCESS: FinBuddy CI pipeline completed!'
-    }
-
-    failure {
-        echo 'FAILED: Check the Jenkins console output for details.'
-    }
-
-    always {
-        echo 'FinBuddy CI pipeline finished.'
-    }
-}
-```
-
 }
