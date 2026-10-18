@@ -18,46 +18,85 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'FinBuddy CI pipeline started!'
-                echo 'Source code has been checked out from GitHub.'
+                echo 'Source code checked out from GitHub.'
             }
         }
 
-        stage('Backend CI') {
+        stage('Install Backend Dependencies') {
             steps {
                 dir('backend') {
-                    stage('Install Backend Dependencies') {
-                        sh 'npm install --no-audit --no-fund'
-                    }
-
-                    stage('Generate Prisma Client') {
-                        sh 'npx prisma generate'
-                    }
-
-                    stage('Validate Prisma Schema') {
-                        sh 'npx prisma validate'
-                    }
-
-                    stage('Backend Lint') {
-                        sh 'npm run lint'
-                    }
-
-                    stage('Backend Tests') {
-                        sh 'npm test'
-                    }
-
-                    stage('Backend Build') {
-                        sh 'npm run build'
-                    }
+                    sh 'npm install --no-audit --no-fund'
                 }
             }
         }
 
-        stage('Frontend CI') {
+        stage('Generate Prisma Client') {
+            steps {
+                dir('backend') {
+                    sh 'npx prisma generate'
+                }
+            }
+        }
+
+        stage('Validate Prisma Schema') {
+            steps {
+                dir('backend') {
+                    sh 'npx prisma validate'
+                }
+            }
+        }
+
+        stage('Backend Lint') {
+            steps {
+                dir('backend') {
+                    sh 'npm run lint'
+                }
+            }
+        }
+
+        stage('Backend Tests') {
+            steps {
+                dir('backend') {
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('Backend Build') {
+            steps {
+                dir('backend') {
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Install Frontend Dependencies') {
             steps {
                 dir('frontend') {
                     sh 'npm install --no-audit --no-fund'
+                }
+            }
+        }
+
+        stage('Frontend Lint') {
+            steps {
+                dir('frontend') {
                     sh 'npm run lint'
+                }
+            }
+        }
+
+        stage('Frontend Tests') {
+            steps {
+                dir('frontend') {
                     sh 'npm test'
+                }
+            }
+        }
+
+        stage('Frontend Build') {
+            steps {
+                dir('frontend') {
                     sh 'npm run build'
                 }
             }
