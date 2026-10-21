@@ -70,7 +70,7 @@ export default function Dashboard() {
       <section className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-extrabold sm:text-4xl">{greeting()}, {user.name.split(' ')[0]}! 👋</h1>
-          <p className="text-ink/65">Here’s how your month is going.</p>
+          <p className="text-ink/65">your money , your goals , your future -manage it .</p>
         </div>
         <Button variant="lime" icon={Plus} onClick={() => nav('/expenses?add=1')}>Add expense</Button>
       </section>
